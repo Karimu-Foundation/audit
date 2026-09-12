@@ -63,6 +63,25 @@ export default function AdminPage() {
     setStatus("locked");
   }
 
+  const [resetting, setResetting] = useState(false);
+  async function resetAllData() {
+    const warn = `Delete all ${audits.length} synced audit${audits.length === 1 ? "" : "s"} and their photos? This can't be undone.`;
+    if (!window.confirm(warn)) return;
+    setResetting(true);
+    setLoadError("");
+    try {
+      const res = await fetch("/api/admin/reset", { method: "POST" });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body || !body.ok) {
+        setLoadError((body && body.message) || "Could not delete the synced audits.");
+        return;
+      }
+      refresh();
+    } finally {
+      setResetting(false);
+    }
+  }
+
   if (status === "checking") {
     return <div className="admin-shell"><p className="small" style={{ color: "var(--muted)" }}>Loading…</p></div>;
   }
@@ -147,6 +166,15 @@ export default function AdminPage() {
         <span className="eyebrow">Audits ({audits.length})</span>
         <span style={{ flex: 1 }} />
         <button className="backlink" onClick={refresh}>Refresh</button>
+        <span style={{ width: 14 }} />
+        <button
+          className="backlink"
+          style={{ color: "var(--issue)" }}
+          onClick={resetAllData}
+          disabled={resetting || !audits.length}
+        >
+          {resetting ? "Deleting…" : "Delete all synced audits"}
+        </button>
         <span style={{ width: 14 }} />
         <button className="backlink" onClick={logout}>Log out</button>
       </div>

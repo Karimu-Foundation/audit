@@ -165,6 +165,14 @@ source). Behind it: a table of every synced audit and every occurrence
 (issue) with a link to its photo(s), read live from Blob storage — nothing
 is copied or cached, so it's always current as of the last sync.
 
+A **"Delete all synced audits"** button (added 2026-09-12) wipes every
+audit and photo blob in one go — for clearing out test data between
+testing rounds, or before the real mission starts. It's a hard delete
+straight from `/api/admin/reset` (`deleteAll()` in `lib/blobStore.js`),
+gated behind a confirm dialog, disabled with nothing to delete, and there
+is no undo — any copy the daily Drive-photos routine already uploaded to
+Google Drive is a separate copy and is untouched by it.
+
 There's deliberately no "generate report" button on the page itself — see
 below for why.
 
