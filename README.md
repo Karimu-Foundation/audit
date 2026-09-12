@@ -153,7 +153,10 @@ manual "Export JSON" backup button still works regardless, as a fallback.
 Each synced audit becomes one JSON blob (`audits/{auditId}.json`) plus one
 blob per photo (`photos/{auditId}/{filename}.jpg`, publicly viewable at its
 own URL — no signing needed). Re-syncing the same audit overwrites its
-blob rather than duplicating it.
+blob rather than duplicating it (`allowOverwrite: true` on both `put()`
+calls in `lib/blobStore.js`, added 2026-09-12 — without it, re-syncing
+after any partial failure hit "This blob already exists" and the retry
+could never get through).
 
 ### Admin page
 
@@ -275,3 +278,30 @@ fallback means a missed one won't error, it'll just quietly show English.
   the browser's `localStorage`, which has a several-MB ceiling. Fine for the
   MVP; worth moving to IndexedDB before a volunteer with a very photo-heavy
   audit hits the limit.
+- Added 2026-09-12, for real field use with practically no connectivity:
+  - Every audit — draft, finished-but-unsynced, or already synced — can be
+    deleted straight from the home screen's list (trash icon on each row),
+    fully offline. The confirm message is tailored to what's actually at
+    stake: a draft, a finished audit that hasn't left the device yet
+    (including its photos — nothing to fall back on), or just the local
+    copy of one already safely synced.
+  - The checklist screen has a "← Back" button next to "Save & close" that
+    returns to the home menu and discards the audit entirely (with a
+    confirm first) — for when a volunteer wants to abandon an audit rather
+    than keep it as a draft.
+  - A free-text "General comments" field on the review screen
+    (`a.comment`, carried through `auditRecord()` into the synced record,
+    the CSV export, and the admin table).
+  - The stale "you'll need to move the photos to Drive by hand" messaging
+    is gone from the Sync screen — it described the old manual-export
+    flow, not the current direct-to-Blob sync.
+  - `public/sw.js` rewritten: `/_next/static/*` (content-hashed JS/CSS
+    chunks) are served cache-first, so they load instantly with zero
+    network dependency once cached, instead of racing a doomed fetch every
+    time the device is offline. Everything else same-origin stays
+    network-first but is now raced against a 2.5s timeout so a dead or
+    very slow connection falls back to the cached shell immediately
+    instead of leaving a tap hanging. `app/page.js`'s `import("@/lib/engine")`
+    (the module that attaches every click handler on the page — if it
+    fails to load, every button silently does nothing) now retries once
+    on failure.

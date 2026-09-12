@@ -3,12 +3,28 @@
 import { useEffect } from "react";
 import "leaflet/dist/leaflet.css";
 
+// engine.js pulls in Leaflet, which touches `window` at module scope, so it
+// can't be statically imported here (that would break server prerendering
+// of this page). It stays a lazy import() — but that means the chunk has
+// to actually load before any button on the page works (mount() attaches
+// every click handler), which is exactly the kind of thing that can fail
+// silently offline. Two things make that safe: the service worker caches
+// this chunk cache-first (see public/sw.js) so once it's loaded online
+// once, loading it again needs no network round-trip at all; and here we
+// retry once on failure instead of giving up with every button dead.
+function loadEngine(onReady) {
+  import("@/lib/engine").then(onReady).catch(() => {
+    // One retry — covers a transient hiccup right at the online/offline
+    // boundary. If this also fails, the device most likely never cached
+    // this chunk yet (its very first-ever load happened offline).
+    import("@/lib/engine").then(onReady).catch(() => {});
+  });
+}
+
 export default function Page() {
   useEffect(() => {
     let cancelled = false;
-    import("@/lib/engine").then((mod) => {
-      if (!cancelled) mod.mount();
-    });
+    loadEngine((mod) => { if (!cancelled) mod.mount(); });
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch(() => {
         // Offline app-shell caching is a nice-to-have — the app still

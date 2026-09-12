@@ -26,7 +26,7 @@ const AUDIT_COLUMNS = [
   "syncedAt", "id", "type", "typeLabel", "school", "unit",
   "ward", "village", "subVillage", "assetTag", "assetType", "location",
   "inspector", "date", "gpsLat", "gpsLon",
-  "answeredCount", "totalCount", "issueCount",
+  "answeredCount", "totalCount", "issueCount", "comment",
 ];
 const FINDING_COLUMNS = [
   "syncedAt", "auditId", "school", "unit",

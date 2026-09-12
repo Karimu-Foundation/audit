@@ -183,7 +183,7 @@ export default function AdminPage() {
           <thead>
             <tr>
               <th>Synced</th><th>Ward</th><th>Village</th><th>Asset Tag</th>
-              <th>Inspector</th><th>Date</th><th>Answered</th><th>Issues</th>
+              <th>Inspector</th><th>Date</th><th>Answered</th><th>Issues</th><th>Comment</th>
             </tr>
           </thead>
           <tbody>
@@ -197,9 +197,10 @@ export default function AdminPage() {
                 <td className="mono">{a.date}</td>
                 <td>{a.answeredCount}/{a.totalCount}</td>
                 <td>{a.issueCount}</td>
+                <td className="wrap-cell">{a.comment || "—"}</td>
               </tr>
             ))}
-            {!audits.length ? <tr><td colSpan={8} className="small" style={{ color: "var(--muted)" }}>No audits synced yet.</td></tr> : null}
+            {!audits.length ? <tr><td colSpan={9} className="small" style={{ color: "var(--muted)" }}>No audits synced yet.</td></tr> : null}
           </tbody>
         </table>
       </div>
