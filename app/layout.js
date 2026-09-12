@@ -15,15 +15,18 @@ export const viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#F5F7F5" },
-    { media: "(prefers-color-scheme: dark)", color: "#0F1516" },
-  ],
+  themeColor: "#F5F7F5",
 };
 
 export default function RootLayout({ children }) {
+  // data-theme="light" is forced here (not just a default) — the app used
+  // to have a light/dark toggle plus a "follow system" fallback, but a
+  // dark screen turned out unreadable in direct sun for field audits, so
+  // by request it's light-only now, regardless of the device's own theme
+  // setting. See app/globals.css for the (now dead) dark palette — kept
+  // there rather than deleted in case this gets revisited later.
   return (
-    <html lang="en">
+    <html lang="en" data-theme="light">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
