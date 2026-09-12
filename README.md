@@ -87,15 +87,15 @@ auto-fill the Inspector field on every new audit's Setup screen — nobody
 has to type their own name a second time. It isn't sent anywhere else and
 doesn't gate which audits someone can start.
 
-**Groups (added 2026-09-12, routes fully redone 2026-09-13).** The
-mission's planned Water Points are split into **12 hand-planned groups**
-(sizes vary — 3 to 14 points each, not all equal; from the "Water Points"
-tab of Edu's routing spreadsheet — see the header comment in
-`lib/waterAssets.js` for the exact source and history), worked over **2
-field days, 6 groups per day**: groups 1-6 on day 1, 7-12 on day 2
-(`group -> day = Math.ceil(group / 6)` — unchanged formula, just fewer
-groups now). Each of the 6 volunteers covers one group per day (e.g.
-Thuler: groups 1, 7). Because the same volunteer's groups point at
+**Groups (added 2026-09-12, regenerated 2026-09-13 from the redone
+sheet).** The mission's 311 planned Water Points are split into **24
+hand-planned groups** of 10-14 each (from the "Water Points" tab of Edu's
+routing spreadsheet — see the header comment in `lib/waterAssets.js` for
+the exact source, the re-export procedure, and its pitfalls), worked over
+**4 field days, 6 groups per day**: groups 1-6 on day 1, 7-12 on day 2,
+13-18 on day 3, 19-24 on day 4 (`group -> day = Math.ceil(group / 6)`).
+Each of the 6 volunteers covers one group per day (e.g. Thuler: groups 1,
+7, 13, 19). Because the same volunteer's groups point at
 completely different places on different days, picking a name alone
 isn't enough to know which Water Points to show — so right after choosing
 a name (and any time after, via "Change group" on My Route), the app asks
@@ -121,33 +121,31 @@ being steered toward one the plan suggests. The assignment, grouping, and
 order are **precomputed and baked into `lib/waterAssets.js`**, not
 calculated on the device, so every volunteer's phone shows the same plan:
 
-- Each row's 12th tuple field is its `group` (1-12, or `null` if the
+- Each row's 12th tuple field is its `group` (1-24, or `null` if the
   point isn't part of this year's planned route). `routeOrder` is the
   visiting order **within that group**, taken straight from the row
-  numbers in Edu's spreadsheet (the planned order, not a computed
+  order in Edu's spreadsheet (the planned order, not a computed
   nearest-neighbor walk) — the map still draws it as a straight-line
   path, since there's no detailed road network here to route against.
-- Of the 332 Public Water Points, 149 are in one of the 12 groups; the
+- Of the 332 Public Water Points, 311 are in one of the 24 groups; the
   rest aren't part of this year's route and carry
   `volunteer`/`routeOrder`/`group` all `null` (same as Private Water
   Points and Water Tanks, which are out of scope regardless).
-- A handful of grouped points (12 of 149) have no GPS coordinates on
+- A handful of grouped points (26 of 311) have no GPS coordinates on
   file; same as before, the app lists them after the ordered route,
   unordered, flagged "No GPS."
 
-**This plan fully replaces whatever came before it** — every Water Point
-that was assigned under an earlier plan but isn't in the current sheet
-export gets `volunteer`/`routeOrder`/`group` reset to `null`, same as any
-Water Point that was never assigned. To regenerate this after the sheet
-changes again (new groups, reassigned volunteers, a later mission):
-re-export the "Water Points" tab of that spreadsheet, clear
-`volunteer`/`routeOrder`/`group` on every row that currently has them set
-(the old plan, in full), then for each row in the new export set that
-Water Point's `volunteer` (mapped to the full `VOLUNTEERS` name),
-`routeOrder` (its row number within its group), and `group` in
-`WATER_ASSET_ROWS` in `lib/waterAssets.js`. There's no saved script
-committed here yet; worth turning into a real `scripts/` file if this
-becomes a recurring task (it already has been, twice).
+**Each regeneration fully replaces whatever came before it** — every
+Water Point assigned under an earlier plan gets
+`volunteer`/`routeOrder`/`group` reset to `null` first, so a point
+dropped from the new sheet doesn't keep a stale group. The exact
+re-export procedure — including the Drive-connector truncation trap that
+silently produced a wrong 12-group plan on 2026-09-13, and the checks
+that catch it (6 volunteers × 4 groups, sizes 10-14, every tag resolving
+to a Public Water Point) — is written up in the header comment of
+`lib/waterAssets.js`. There's no saved script committed here yet; worth
+turning into a real `scripts/` file, since this has now come up three
+times.
 
 ## Sync storage, admin page, and reporting
 
