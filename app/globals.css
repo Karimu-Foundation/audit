@@ -253,6 +253,10 @@ select{appearance:none;
   color:var(--muted);transition:background .12s,color .12s;
 }
 .audit-item-delete:hover{background:var(--issue-soft);color:var(--issue)}
+.stop-status{display:inline-flex;flex:none;align-items:center}
+.stop-status-synced{color:var(--ok)}
+.stop-status-ready{color:var(--accent)}
+.stop-status-none{color:var(--muted);opacity:.6}
 
 .empty{
   border:1px dashed var(--line-strong);border-radius:var(--r-lg);padding:32px 20px;
