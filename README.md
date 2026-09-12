@@ -87,51 +87,67 @@ auto-fill the Inspector field on every new audit's Setup screen — nobody
 has to type their own name a second time. It isn't sent anywhere else and
 doesn't gate which audits someone can start.
 
-**Groups (added 2026-09-12).** The mission's 312 planned Water Points are
-split into **24 hand-planned groups** of ~13 each (Matika's grouping, from
-the "Water Points" tab of Edu's routing spreadsheet — see the header
-comment in `lib/waterAssets.js` for the exact source), worked over **4
-field days, 6 groups per day**: groups 1-6 on day 1, 7-12 on day 2, 13-18
-on day 3, 19-24 on day 4 (`group -> day = Math.ceil(group / 6)`). Each of
-the 6 volunteers covers one group per day (e.g. Thuler: groups 1, 7, 13,
-19). Because the same volunteer's groups point at completely different
-places on different days, picking a name alone isn't enough to know which
-Water Points to show — so right after choosing a name (and any time
-after, via "Change group" on My Route), the app asks **which day/group
-they're working** and remembers that choice the same way as the
-volunteer/language prefs. A volunteer with only one group (or none, like
-`Teste`) skips straight past this screen since there's nothing to choose.
+**Groups (added 2026-09-12, routes fully redone 2026-09-13).** The
+mission's planned Water Points are split into **12 hand-planned groups**
+(sizes vary — 3 to 14 points each, not all equal; from the "Water Points"
+tab of Edu's routing spreadsheet — see the header comment in
+`lib/waterAssets.js` for the exact source and history), worked over **2
+field days, 6 groups per day**: groups 1-6 on day 1, 7-12 on day 2
+(`group -> day = Math.ceil(group / 6)` — unchanged formula, just fewer
+groups now). Each of the 6 volunteers covers one group per day (e.g.
+Thuler: groups 1, 7). Because the same volunteer's groups point at
+completely different places on different days, picking a name alone
+isn't enough to know which Water Points to show — so right after choosing
+a name (and any time after, via "Change group" on My Route), the app asks
+**which day/group they're working** and remembers that choice the same
+way as the volunteer/language prefs. A volunteer with only one group (or
+none, like `Teste`) skips straight past this screen since there's nothing
+to choose.
 
 "My route" shows the current group's Water Points on a map (OpenStreetMap
 tiles via Leaflet — needs a connection to load the map itself, though the
 stop list below it works offline like everything else) with a suggested
 visiting order, plus a tap-to-start shortcut into a pre-filled audit for
-that asset. The assignment, grouping, and order are **precomputed and
-baked into `lib/waterAssets.js`**, not calculated on the device, so every
-volunteer's phone shows the same plan:
+that asset. Each stop also shows a small status badge — synced, done but
+waiting to sync, or not audited yet (see `auditStatusForTag()` in
+`lib/engine.js`). There is deliberately **no "go to next stop"
+shortcut** on the Sync screen — that existed briefly (2026-09-12) but was
+removed at Nelson's request (2026-09-13): the planned visiting order
+within a group isn't necessarily the order the auditor and guide will
+actually walk it in, so after finishing a checklist the Sync screen's
+"← Back to water points list" button just returns to the full route list,
+letting the auditor pick whichever stop makes sense next rather than
+being steered toward one the plan suggests. The assignment, grouping, and
+order are **precomputed and baked into `lib/waterAssets.js`**, not
+calculated on the device, so every volunteer's phone shows the same plan:
 
-- Each row's 12th tuple field is its `group` (1-24, or `null` if the
+- Each row's 12th tuple field is its `group` (1-12, or `null` if the
   point isn't part of this year's planned route). `routeOrder` is the
   visiting order **within that group**, taken straight from the row
-  numbers in Edu's spreadsheet (Matika's planned order, not a computed
+  numbers in Edu's spreadsheet (the planned order, not a computed
   nearest-neighbor walk) — the map still draws it as a straight-line
   path, since there's no detailed road network here to route against.
-- Of the 332 Public Water Points, 312 are in one of the 24 groups; the
-  other 20 aren't part of this year's route and carry
+- Of the 332 Public Water Points, 149 are in one of the 12 groups; the
+  rest aren't part of this year's route and carry
   `volunteer`/`routeOrder`/`group` all `null` (same as Private Water
   Points and Water Tanks, which are out of scope regardless).
-- A handful of grouped points (26 of 312) have no GPS coordinates on
+- A handful of grouped points (12 of 149) have no GPS coordinates on
   file; same as before, the app lists them after the ordered route,
   unordered, flagged "No GPS."
 
-To regenerate this after the sheet changes (new groups, reassigned
-volunteers, a later mission): re-export the "Water Points" tab of that
-spreadsheet, and for each row set that Water Point's `volunteer` (mapped
-to the full `VOLUNTEERS` name), `routeOrder` (its row number within its
-group), and `group` (1-24) in `WATER_ASSET_ROWS` in
-`lib/waterAssets.js` — set all three to `null` for any Public Water Point
-no longer in a group. There's no saved script committed here yet; worth
-turning into a real `scripts/` file if this becomes a recurring task.
+**This plan fully replaces whatever came before it** — every Water Point
+that was assigned under an earlier plan but isn't in the current sheet
+export gets `volunteer`/`routeOrder`/`group` reset to `null`, same as any
+Water Point that was never assigned. To regenerate this after the sheet
+changes again (new groups, reassigned volunteers, a later mission):
+re-export the "Water Points" tab of that spreadsheet, clear
+`volunteer`/`routeOrder`/`group` on every row that currently has them set
+(the old plan, in full), then for each row in the new export set that
+Water Point's `volunteer` (mapped to the full `VOLUNTEERS` name),
+`routeOrder` (its row number within its group), and `group` in
+`WATER_ASSET_ROWS` in `lib/waterAssets.js`. There's no saved script
+committed here yet; worth turning into a real `scripts/` file if this
+becomes a recurring task (it already has been, twice).
 
 ## Sync storage, admin page, and reporting
 
