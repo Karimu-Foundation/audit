@@ -75,60 +75,63 @@ and Intake sections) are kept verbatim from Nelson's checklist and are only
 in English — see the i18n note below on why that's an acceptable gap for
 now, and how to close it later.
 
-## Volunteer identification and routes
+## Volunteer identification, groups, and routes
 
-Added 2026-08-25. Right after picking a language, a volunteer now picks
-their name from a fixed list (`VOLUNTEERS` in `lib/waterAssets.js`: Thuler,
-Arake, Gui Lacerda, Rafa Braga, Sergio, Padilha, plus a `Teste` account for
-QA with nothing assigned to it) — remembered on that device from then on,
-same as language, and changeable later from the same screen (globe icon →
-scroll down). It decides which Water Points show up on "My route", and
-(added 2026-08-26) is used to auto-fill the Inspector field on every new
-audit's Setup screen — nobody has to type their own name a second time.
-It isn't sent anywhere else and doesn't gate which audits someone can start.
+Added 2026-08-25, reworked 2026-09-12. Right after picking a language, a
+volunteer picks their name from a fixed list (`VOLUNTEERS` in
+`lib/waterAssets.js`: Thuler, Arake, Gui Lacerda, Rafa Braga, Sergio,
+Padilha, plus a `Teste` account for QA with nothing assigned to it) —
+remembered on that device from then on, same as language, and changeable
+later from the same screen (globe icon → scroll down). It's also used to
+auto-fill the Inspector field on every new audit's Setup screen — nobody
+has to type their own name a second time. It isn't sent anywhere else and
+doesn't gate which audits someone can start.
 
-"My route" shows that volunteer's assigned Water Points on a map (OpenStreetMap
+**Groups (added 2026-09-12).** The mission's 312 planned Water Points are
+split into **24 hand-planned groups** of ~13 each (Matika's grouping, from
+the "Water Points" tab of Edu's routing spreadsheet — see the header
+comment in `lib/waterAssets.js` for the exact source), worked over **4
+field days, 6 groups per day**: groups 1-6 on day 1, 7-12 on day 2, 13-18
+on day 3, 19-24 on day 4 (`group -> day = Math.ceil(group / 6)`). Each of
+the 6 volunteers covers one group per day (e.g. Thuler: groups 1, 7, 13,
+19). Because the same volunteer's groups point at completely different
+places on different days, picking a name alone isn't enough to know which
+Water Points to show — so right after choosing a name (and any time
+after, via "Change group" on My Route), the app asks **which day/group
+they're working** and remembers that choice the same way as the
+volunteer/language prefs. A volunteer with only one group (or none, like
+`Teste`) skips straight past this screen since there's nothing to choose.
+
+"My route" shows the current group's Water Points on a map (OpenStreetMap
 tiles via Leaflet — needs a connection to load the map itself, though the
 stop list below it works offline like everything else) with a suggested
 visiting order, plus a tap-to-start shortcut into a pre-filled audit for
-that asset. The assignment and order are **precomputed and baked into
-`lib/waterAssets.js`**, not calculated on the device, so every volunteer's
-phone shows the same plan:
+that asset. The assignment, grouping, and order are **precomputed and
+baked into `lib/waterAssets.js`**, not calculated on the device, so every
+volunteer's phone shows the same plan:
 
-- Of the **332 Public** Water Points (private ones are entirely out of
-  scope — see "Water Assets registry" above), **302 (91%) have GPS
-  coordinates** in the sheet's "Coordinates in decimal" column; the other
-  30 (9%) don't. Only the 302 go into the routing math below;
-  re-collecting GPS for the rest and regenerating this file would bring
-  them in too.
-- Those 302 were split into 6 **equal-sized** (~50 each), geographically
-  compact groups via a recursive median-cut partition (repeatedly slice the
-  point cloud in half along whichever axis — latitude or longitude —
-  currently spans further), then each group assigned to one volunteer,
-  west to east. This is a straight geographic split, not a request from
-  Nelson about who covers what — if there's an existing human assignment,
-  swap it in instead.
-- Within each volunteer's group, the visiting order is a nearest-neighbor
-  walk starting from the westmost point — **straight-line distance**, since
-  there's no detailed road network here to route against. The map draws
-  that straight-line path; it is not turn-by-turn driving directions.
-- The 30 without coordinates are still assigned to a volunteer (by
-  majority vote of their own village's coordinate-bearing points, falling
-  back to ward, then to the single largest group — only 2 assets, both in
-  Kiru, hit that last fallback), but with no position to place them in the
-  order, so the app lists them after the route, unordered, flagged "No GPS."
-  This means volunteer workloads are **not perfectly even** once those are
-  included (ranging ~50–65 per volunteer as of this export) — whichever
-  villages have poor GPS coverage weigh down whoever's group they landed in.
+- Each row's 12th tuple field is its `group` (1-24, or `null` if the
+  point isn't part of this year's planned route). `routeOrder` is the
+  visiting order **within that group**, taken straight from the row
+  numbers in Edu's spreadsheet (Matika's planned order, not a computed
+  nearest-neighbor walk) — the map still draws it as a straight-line
+  path, since there's no detailed road network here to route against.
+- Of the 332 Public Water Points, 312 are in one of the 24 groups; the
+  other 20 aren't part of this year's route and carry
+  `volunteer`/`routeOrder`/`group` all `null` (same as Private Water
+  Points and Water Tanks, which are out of scope regardless).
+- A handful of grouped points (26 of 312) have no GPS coordinates on
+  file; same as before, the app lists them after the ordered route,
+  unordered, flagged "No GPS."
 
-To regenerate this after the sheet changes (new points, GPS added for the
-30-point gap above, or ownership changes): re-export "Water Assets",
-re-run the same pipeline (Public-only filter → recursive median-cut →
-nearest-neighbor, seeded from the "Ownership" and "Coordinates in decimal"
-columns) to rebuild `WATER_ASSET_ROWS` in `lib/waterAssets.js` with fresh
-`lat`/`lon`/`volunteer`/`routeOrder`/`isPublic` values. There's no saved
-script committed here yet — it was run ad hoc; worth turning into a real
-`scripts/` file if this becomes a recurring task.
+To regenerate this after the sheet changes (new groups, reassigned
+volunteers, a later mission): re-export the "Water Points" tab of that
+spreadsheet, and for each row set that Water Point's `volunteer` (mapped
+to the full `VOLUNTEERS` name), `routeOrder` (its row number within its
+group), and `group` (1-24) in `WATER_ASSET_ROWS` in
+`lib/waterAssets.js` — set all three to `null` for any Public Water Point
+no longer in a group. There's no saved script committed here yet; worth
+turning into a real `scripts/` file if this becomes a recurring task.
 
 ## Sync storage, admin page, and reporting
 
