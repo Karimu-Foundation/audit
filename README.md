@@ -88,7 +88,7 @@ has to type their own name a second time. It isn't sent anywhere else and
 doesn't gate which audits someone can start.
 
 **Groups (added 2026-09-12, regenerated 2026-09-13 from the redone
-sheet).** The mission's 311 planned Water Points are split into **24
+sheet).** The mission's 312 planned Water Points are split into **24
 hand-planned groups** of 10-14 each (from the "Water Points" tab of Edu's
 routing spreadsheet — see the header comment in `lib/waterAssets.js` for
 the exact source, the re-export procedure, and its pitfalls), worked over
@@ -127,11 +127,11 @@ calculated on the device, so every volunteer's phone shows the same plan:
   order in Edu's spreadsheet (the planned order, not a computed
   nearest-neighbor walk) — the map still draws it as a straight-line
   path, since there's no detailed road network here to route against.
-- Of the 332 Public Water Points, 311 are in one of the 24 groups; the
+- Of the 332 Public Water Points, 312 are in one of the 24 groups; the
   rest aren't part of this year's route and carry
   `volunteer`/`routeOrder`/`group` all `null` (same as Private Water
   Points and Water Tanks, which are out of scope regardless).
-- A handful of grouped points (26 of 311) have no GPS coordinates on
+- A handful of grouped points (26 of 312) have no GPS coordinates on
   file; same as before, the app lists them after the ordered route,
   unordered, flagged "No GPS."
 
