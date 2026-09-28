@@ -147,6 +147,56 @@ to a Public Water Point) — is written up in the header comment of
 turning into a real `scripts/` file, since this has now come up three
 times.
 
+## Local storage (on-device)
+
+Changed 2026-09-28 (`lib/idbStore.js`). Every audit lives on-device until
+Sync, same as always — what changed is *where*. It used to be one JSON
+blob in `localStorage`, which most browsers cap at somewhere around 5-10MB
+per origin no matter what; that cap turned out to be the real reason
+volunteers kept hitting "no space for photos" even right after syncing —
+not anything about compression or the post-sync cleanup (still in place,
+see below). IndexedDB doesn't have that fixed ceiling; its quota is a share
+of the device's free disk space, typically hundreds of MB at minimum.
+
+Two object stores: `audits` (one row per audit, keyed by its own `id` —
+persisting a change to one audit no longer means re-serializing every
+other audit on the device, unlike the old single-blob approach) and
+`prefs` (one row per remembered preference — language, volunteer, last
+ward/village, etc.).
+
+**Keeping every existing call site working unchanged:** `audits` and the
+prefs cache stay as plain in-memory values, populated once at boot and
+read/written synchronously everywhere in `lib/engine.js` exactly as
+before — only the underlying persistence is now async, fired off in the
+background from `save()`/`pref()` without blocking the caller. The one
+place this is awaited is `mount()`'s startup, which loads everything from
+IndexedDB (and runs the one-time migration below) before the first
+real screen renders.
+
+**Migration from the old version:** the first time this version runs on a
+device that still has data in the old `localStorage` keys
+(`karimu.audits.v2`, `karimu.prefs.v1`), it's copied into IndexedDB once
+(gated by a `__migratedFromLocalStorage` pref so it never runs twice or
+clobbers newer IndexedDB data with stale localStorage data), and the old
+keys are then cleared — reclaiming that space is the whole point. A
+device that was already using IndexedDB, or a brand new install, skips
+this entirely.
+
+The still-in-place photo space-saving pipeline — shrinking new photos
+client-side, swapping a synced photo's local base64 for its Blob URL right
+after sync, and retroactively reclaiming space for anything already synced
+— all works exactly as before; only the storage it reads from and writes
+to changed.
+
+The Sync screen's "MB on device" tile now reads `navigator.storage.estimate()`
+instead of measuring one `localStorage` key's string length — a live
+estimate of this whole origin's on-device storage (not just audits), refreshed
+each time that screen renders. The app also asks the browser not to evict
+this origin's storage under pressure via `navigator.storage.persist()` on
+boot (best-effort — notably unsupported on iOS Safari, and Chrome only
+auto-grants it based on its own engagement heuristics; nothing here depends
+on it being granted).
+
 ## Sync storage, admin page, and reporting
 
 Changed 2026-08-26. The original design synced straight into Google
@@ -288,10 +338,12 @@ fallback means a missed one won't error, it'll just quietly show English.
   can be installed as a PWA (`app/manifest.js`, `public/sw.js`) and — this is
   the actual point of moving it here — it can make real network calls. Sync
   now POSTs to `/api/sync` instead of only offering a local file save.
-- Known gap carried over: audit data (including photos) is still cached in
-  the browser's `localStorage`, which has a several-MB ceiling. Fine for the
-  MVP; worth moving to IndexedDB before a volunteer with a very photo-heavy
-  audit hits the limit.
+- **Resolved 2026-09-28:** audit data (including photos) used to be cached
+  in the browser's `localStorage`, which has a hard several-MB ceiling per
+  origin regardless of how well photos are compressed — the actual wall
+  behind volunteers hitting "no space for photos" even right after syncing.
+  Local storage is now IndexedDB (`lib/idbStore.js`), whose quota is a share
+  of the device's free disk space instead — see "Local storage" below.
 - Added 2026-09-12, for real field use with practically no connectivity:
   - Every audit — draft, finished-but-unsynced, or already synced — can be
     deleted straight from the home screen's list (trash icon on each row),
