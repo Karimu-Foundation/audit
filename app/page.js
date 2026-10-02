@@ -37,6 +37,7 @@ export default function Page() {
   return (
     <>
       <div className="app">
+        <div id="testBanner" className="test-banner" hidden></div>
         <header className="topbar">
           <div className="brand">
             <div className="brand-mark" aria-hidden="true">KF</div>

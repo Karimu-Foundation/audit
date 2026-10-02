@@ -34,6 +34,13 @@ export async function POST(request) {
     return Response.json({ ok: false, code: "bad_request", message: "Request is missing an audit record." }, { status: 400 });
   }
 
+  // Test-mode audits are never stored (the client doesn't send them in the
+  // first place — this is the backstop). Nothing reaches Blob storage, so
+  // nothing reaches the admin page, the Sheets export, or the Drive routine.
+  if (audit.test) {
+    return Response.json({ ok: true, test: true, photosUploaded: 0, findingsWritten: 0 });
+  }
+
   try {
     const result = await saveAudit(audit);
     return Response.json({ ok: true, ...result });

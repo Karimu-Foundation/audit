@@ -184,6 +184,7 @@ export default function AdminPage() {
             <tr>
               <th>Synced</th><th>Ward</th><th>Village</th><th>Asset Tag</th>
               <th>Inspector</th><th>Date</th><th>Answered</th><th>Issues</th><th>Comment</th><th>Site Photo</th>
+              <th>Water</th><th>GPS vs register</th>
             </tr>
           </thead>
           <tbody>
@@ -199,9 +200,13 @@ export default function AdminPage() {
                 <td>{a.issueCount}</td>
                 <td className="wrap-cell">{a.comment || "—"}</td>
                 <td>{a.sitePhoto ? <a href={a.sitePhoto} target="_blank" rel="noreferrer">photo</a> : "—"}</td>
+                <td>{a.hasWater === true ? "yes" : a.hasWater === false ? "no" : "—"}</td>
+                <td className="mono" style={a.gpsDistanceM > 50 ? { color: "var(--issue)", fontWeight: 600 } : undefined}>
+                  {a.gpsDistanceM == null ? "—" : `${a.gpsDistanceM} m`}
+                </td>
               </tr>
             ))}
-            {!audits.length ? <tr><td colSpan={10} className="small" style={{ color: "var(--muted)" }}>No audits synced yet.</td></tr> : null}
+            {!audits.length ? <tr><td colSpan={12} className="small" style={{ color: "var(--muted)" }}>No audits synced yet.</td></tr> : null}
           </tbody>
         </table>
       </div>

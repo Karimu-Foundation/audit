@@ -147,6 +147,59 @@ to a Public Water Point) — is written up in the header comment of
 turning into a real `scripts/` file, since this has now come up three
 times.
 
+## Checklist pre-fill, GPS check, and test mode
+
+Added 2026-10-02.
+
+**"Is there water?"** Opening the checklist for a water point first asks
+whether there's water right now (`screenWater()` in `lib/engine.js`). The
+answer is saved on the audit (`hasWater`), shown on Review, and exported
+as the `water` column. With no water, the items that can't be checked
+without water are pre-filled N/A, and "Faucets are delivering enough
+water" is pre-filled as an **Issue** (with an auto-note) — on purpose, so a
+dry water point shows up in Findings / the Occurrences sheet rather than
+vanishing behind N/As. The answer can be changed from the checklist
+banner; switching back to "yes" withdraws those pre-fills.
+
+**From the register.** `lib/waterAssets.js` now carries each point's
+structure type and whether a plaque is on record (from the sheet's "Type"
+and "Plaque" columns, see the header comment there). No plaque on record →
+the Plaque questions (and "is it supposed to have a donation plaque") are
+pre-filled N/A. Type "Faucet" → the Concrete Column questions are
+pre-filled N/A. "Concrete wall" points currently get no structure
+pre-fill — add a rule if Concrete Column doesn't apply to them either.
+
+**How pre-fill behaves.** All rules live in `PREFILL_RULES` in
+`lib/checklists.js` (one line each). Pre-fill only fills empty items,
+tags each with its reason (`ans.auto`, shown as a "Pre-filled" badge plus
+a count in the checklist banner), and is a starting point, not a lock:
+the moment the auditor taps an answer it's theirs, and "All OK" skips
+pre-filled items so it can't quietly undo them. Changing the water point
+on Setup resets the water answer and the register-based pre-fills.
+Synced checklist items carry `auto` with the reason when the auditor left
+a pre-fill as-is.
+
+**GPS vs. register.** Capturing GPS on Setup compares the fix with the
+point's coordinates in the register. More than 50 m away
+(`GPS_WARN_METERS`) → an alert that the auditor may be at the wrong water
+point, and a red line under the button; within 50 m → a green
+confirmation. It warns, it doesn't block (the register's coordinates
+aren't always exact). 30 of the 332 Public Water Points have no
+coordinates on file, so there's nothing to compare against for those.
+The distance is shown on Review and exported as `gpsDistanceM`.
+
+**Test mode.** Globe icon → scroll down → "Turn on test mode". While it's
+on, a banner and an amber edge on the top bar make it obvious, every new
+audit is marked as a test for good (`test: true`, "Test" chip on Home),
+and Sync sends nothing at all — test audits are just marked synced on the
+device, real audits stay queued until test mode is off. Test audits are
+never sent even after test mode is turned off, and `/api/sync` refuses to
+store one as a second guard, so nothing reaches Blob storage, the admin
+page, the Sheet, or the Drive photo routine. "My route" badges and
+"resume this stop" only consider audits of the current mode, so a test
+run never makes a real stop look done. Turning test mode off offers to
+delete the test audits from the device.
+
 ## Local storage (on-device)
 
 Changed 2026-09-28 (`lib/idbStore.js`). Every audit lives on-device until
