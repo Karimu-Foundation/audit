@@ -24,6 +24,11 @@ function loadEngine(onReady) {
 export default function Page() {
   useEffect(() => {
     let cancelled = false;
+    // Android Chrome fires this once, possibly before the lazily-loaded
+    // engine is ready — keep it so the install guide can offer a one-tap
+    // "Install app" button (see screenInstall() in lib/engine.js).
+    const keepPrompt = (e) => { e.preventDefault(); window.__installPrompt = e; };
+    window.addEventListener("beforeinstallprompt", keepPrompt);
     loadEngine((mod) => { if (!cancelled) mod.mount(); });
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch(() => {
@@ -31,7 +36,7 @@ export default function Page() {
         // works without it as long as the page was loaded once.
       });
     }
-    return () => { cancelled = true; };
+    return () => { cancelled = true; window.removeEventListener("beforeinstallprompt", keepPrompt); };
   }, []);
 
   return (

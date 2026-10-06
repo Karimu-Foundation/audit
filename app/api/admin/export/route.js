@@ -28,7 +28,7 @@ const AUDIT_COLUMNS = [
   "inspector", "date", "gpsLat", "gpsLon",
   "answeredCount", "totalCount", "issueCount", "comment", "sitePhoto",
   // Appended (never inserted) so existing columns in the Sheet don't shift.
-  "water", "gpsDistanceM",
+  "water", "gpsDistanceM", "valveKey",
 ];
 const FINDING_COLUMNS = [
   "syncedAt", "auditId", "school", "unit",
@@ -57,6 +57,7 @@ export async function GET(request) {
       gpsLon: a.gps ? a.gps.lon : "",
       water: a.hasWater === true ? "yes" : a.hasWater === false ? "no" : "",
       gpsDistanceM: a.gpsDistanceM == null ? "" : a.gpsDistanceM,
+      valveKey: a.hasValveKey === true ? "yes" : a.hasValveKey === false ? "no" : "",
     }));
     if (format === "csv") {
       return new Response(toCsv(rows, AUDIT_COLUMNS), { headers: { "Content-Type": "text/csv; charset=utf-8" } });

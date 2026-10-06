@@ -149,17 +149,30 @@ times.
 
 ## Checklist pre-fill, GPS check, and test mode
 
-Added 2026-10-02.
+Added 2026-10-02 (valve-key question added 2026-10-06).
 
-**"Is there water?"** Opening the checklist for a water point first asks
-whether there's water right now (`screenWater()` in `lib/engine.js`). The
-answer is saved on the audit (`hasWater`), shown on Review, and exported
-as the `water` column. With no water, the items that can't be checked
-without water are pre-filled N/A, and "Faucets are delivering enough
-water" is pre-filled as an **Issue** (with an auto-note) — on purpose, so a
-dry water point shows up in Findings / the Occurrences sheet rather than
-vanishing behind N/As. The answer can be changed from the checklist
-banner; switching back to "yes" withdraws those pre-fills.
+**Before the checklist.** Opening the checklist for a water point first
+asks two yes/no questions on one screen (`screenPrecheck()` in
+`lib/engine.js`); "Start checklist" unlocks once both are answered. An
+audit started before a question existed is asked just the missing one,
+with its earlier answers already selected. Both answers are saved on the
+audit, shown on Review and in the checklist banner (with a "Change" link),
+and exported as Sheet columns.
+
+- **"Is there water?"** (`hasWater`, column `water`). With no water, the
+  items that can't be checked without water are pre-filled N/A, and
+  "Faucets are delivering enough water" is pre-filled as an **Issue** (with
+  an auto-note) — on purpose, so a dry water point shows up in Findings /
+  the Occurrences sheet rather than vanishing behind N/As.
+- **"Do you have access (the key) to open the valve chamber?"**
+  (`hasValveKey`, column `valveKey`). With no key, the Valve Chamber items
+  are pre-filled N/A, except "you have the right key of the lock", which is
+  pre-filled as an **Issue** with an auto-note — same reasoning: a missing
+  key is a finding, not a non-applicable item. ("Ground around: is outside
+  the valve chamber" is about water on the ground, visible without the key,
+  so it's left alone.)
+
+Switching an answer back to "yes" withdraws the pre-fills it caused.
 
 **From the register.** `lib/waterAssets.js` now carries each point's
 structure type and whether a plaque is on record (from the sheet's "Type"
@@ -199,6 +212,35 @@ page, the Sheet, or the Drive photo routine. "My route" badges and
 "resume this stop" only consider audits of the current mode, so a test
 run never makes a real stop look done. Turning test mode off offers to
 delete the test audits from the device.
+
+## Add-to-home-screen guide
+
+Added 2026-10-06 (`screenInstall()` in `lib/engine.js`). On a phone that
+isn't already running the app from its home screen, a step-by-step guide
+is shown once: on first run right after the language pick (so it's in the
+volunteer's language), and once at startup on devices that were set up
+before the guide existed. "Done" and "Skip for now" both dismiss it for
+good (`installGuideSeen` pref); it can be reopened from the globe icon →
+"How to add the app to the home screen". It's never shown on desktop or
+when already installed.
+
+- **iPhone:** manual steps (Safari has no install API) — Share (inside
+  ••• on newer iOS) → Add to Home Screen → Add. **On iPhone the home-screen
+  app has its own storage, separate from Safari**, so if the phone has
+  unsynced audits the guide warns to sync them in Safari first; otherwise
+  they'd stay behind in Safari.
+- **Android:** when Chrome offers its install prompt (`beforeinstallprompt`,
+  captured early in `app/page.js` because it can fire before the engine
+  loads), the guide shows a one-tap "Install the app" button; manual
+  menu steps are always shown too. Shared storage with Chrome, so no
+  data-migration concern there.
+- A link switches between the iPhone and Android steps in case detection
+  guesses wrong.
+
+`app/apple-icon.png` (180×180, full-bleed — iOS rounds the corners itself
+and would fill transparent ones with black) gives iPhones a proper
+home-screen icon, and the iOS home-screen label is "Karimu Audit"
+(`appleWebApp.title` in `app/layout.js`).
 
 ## Local storage (on-device)
 

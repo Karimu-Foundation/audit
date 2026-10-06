@@ -7,7 +7,9 @@ export const metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Karimu Field Audit",
+    // Label under the home-screen icon on iPhone — short so iOS doesn't
+    // truncate it (matches the manifest's short_name used on Android).
+    title: "Karimu Audit",
   },
 };
 
