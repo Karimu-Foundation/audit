@@ -7,11 +7,29 @@ function fmtDate(iso) {
   try { return new Date(iso).toLocaleString(); } catch { return iso; }
 }
 
+// Why the Google sign-in bounced back to /admin (see
+// app/api/auth/google/callback/route.js).
+const SIGNIN_ERRORS = {
+  domain: "Only @karimufoundation.org Google accounts can open the admin page. Sign in again and pick your Karimu account.",
+  cancelled: "Google sign-in was cancelled.",
+  state: "The sign-in link expired or was opened in a different browser. Please try again.",
+  google: "Google sign-in didn't go through. Please try again.",
+  not_configured: "Google sign-in isn't set up on this deployment yet (missing GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET in Vercel). See the README.",
+};
+
 export default function AdminPage() {
   const [status, setStatus] = useState("checking"); // checking | locked | ready
-  const [password, setPassword] = useState("");
-  const [enteredPassword, setEnteredPassword] = useState(""); // kept in memory only, to build the IMPORTDATA formulas below without asking the server to echo the secret back
-  const [error, setError] = useState("");
+  const [user, setUser] = useState(null);
+  const [exportKey, setExportKey] = useState(null);
+  const [googleReady, setGoogleReady] = useState(true);
+  // A failed sign-in comes back as /admin?error=<reason>. Read once on the
+  // client; it's only displayed on the "locked" screen, never the first
+  // (server-rendered) "Loading…" one, so there's no hydration mismatch.
+  const [error] = useState(() => {
+    if (typeof window === "undefined") return "";
+    const reason = new URLSearchParams(window.location.search).get("error");
+    return reason ? SIGNIN_ERRORS[reason] || SIGNIN_ERRORS.google : "";
+  });
   const [audits, setAudits] = useState([]);
   const [findings, setFindings] = useState([]);
   const [loadError, setLoadError] = useState("");
@@ -19,15 +37,26 @@ export default function AdminPage() {
   const [reloadKey, setReloadKey] = useState(0);
   function refresh() { setReloadKey((k) => k + 1); }
 
+  // Drop ?error= from the address bar so a reload doesn't repeat it.
+  useEffect(() => {
+    if (window.location.search) window.history.replaceState(null, "", window.location.pathname);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoadError("");
       const res = await fetch("/api/admin/data");
       if (cancelled) return;
-      if (res.status === 401) { setStatus("locked"); return; }
       const body = await res.json().catch(() => null);
       if (cancelled) return;
+      if (res.status === 401) {
+        setGoogleReady(!body || body.googleConfigured !== false);
+        setStatus("locked");
+        return;
+      }
+      if (body && body.user) setUser(body.user);
+      if (body && body.exportKey) setExportKey(body.exportKey);
       if (!res.ok || !body || !body.ok) {
         setLoadError((body && body.message) || "Could not load data.");
         setStatus("ready");
@@ -40,24 +69,10 @@ export default function AdminPage() {
     return () => { cancelled = true; };
   }, [reloadKey]);
 
-  async function submitLogin(e) {
-    e.preventDefault();
-    setError("");
-    const res = await fetch("/api/admin/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
-    });
-    if (!res.ok) { setError("Wrong password."); return; }
-    setEnteredPassword(password);
-    setPassword("");
-    setStatus("checking");
-    refresh();
-  }
-
   async function logout() {
     await fetch("/api/admin/logout", { method: "POST" });
-    setEnteredPassword("");
+    setUser(null);
+    setExportKey(null);
     setAudits([]);
     setFindings([]);
     setStatus("locked");
@@ -92,31 +107,28 @@ export default function AdminPage() {
         <div className="hero">
           <span className="eyebrow">Karimu Field Audit</span>
           <h1>Admin</h1>
-          <p className="lede small">Enter the shared keyword to view synced audits.</p>
+          <p className="lede small">Sign in with your @karimufoundation.org Google account to view synced audits.</p>
         </div>
-        <form onSubmit={submitLogin} className="stack gap-10">
-          <label className="field">
-            <span>Keyword</span>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoFocus
-            />
-          </label>
+        <div className="stack gap-10">
           {error ? <p className="small" style={{ color: "var(--issue)" }}>{error}</p> : null}
-          <button className="btn btn-primary btn-block" type="submit">Enter</button>
-        </form>
+          {googleReady ? (
+            // A plain link, not fetch: the sign-in is a full-page trip to
+            // Google and back (see app/api/auth/google/login/route.js).
+            <a className="btn btn-primary btn-block" href="/api/auth/google/login" style={{ textDecoration: "none" }}>Sign in with Google</a>
+          ) : (
+            <p className="small" style={{ color: "var(--issue)" }}>{SIGNIN_ERRORS.not_configured}</p>
+          )}
+        </div>
       </div>
     );
   }
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const findingsFormula = enteredPassword
-    ? `=IMPORTDATA("${origin}/api/admin/export?tab=findings&format=csv&key=${encodeURIComponent(enteredPassword)}")`
+  const findingsFormula = exportKey
+    ? `=IMPORTDATA("${origin}/api/admin/export?tab=findings&format=csv&key=${encodeURIComponent(exportKey.key)}")`
     : null;
-  const auditsFormula = enteredPassword
-    ? `=IMPORTDATA("${origin}/api/admin/export?tab=audits&format=csv&key=${encodeURIComponent(enteredPassword)}")`
+  const auditsFormula = exportKey
+    ? `=IMPORTDATA("${origin}/api/admin/export?tab=audits&format=csv&key=${encodeURIComponent(exportKey.key)}")`
     : null;
 
   return (
@@ -127,6 +139,7 @@ export default function AdminPage() {
         <p className="lede small">
           {audits.length} synced audit{audits.length === 1 ? "" : "s"}, {findings.length} occurrence{findings.length === 1 ? "" : "s"} with an issue.
         </p>
+        {user ? <p className="small" style={{ color: "var(--muted)", marginTop: 4 }}>Signed in as {user.email}</p> : null}
       </div>
 
       {loadError ? (
@@ -136,7 +149,19 @@ export default function AdminPage() {
         </div>
       ) : null}
 
-      {enteredPassword ? (
+      {exportKey && exportKey.isFallback ? (
+        <div className="banner banner-warn" style={{ marginBottom: 20 }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16v.5" /></svg>
+          <div>
+            The Google Sheets export key is still the default one, which is visible in this app&rsquo;s public source
+            code — anyone with it can download every audit. Set <code>ADMIN_PASSWORD</code> to a new random value in
+            the Vercel project&rsquo;s environment variables, redeploy, then paste the updated formulas below into the
+            spreadsheet.
+          </div>
+        </div>
+      ) : null}
+
+      {exportKey ? (
         <div className="card" style={{ padding: 18, marginBottom: 24 }}>
           <div className="stack gap-10">
             <span className="eyebrow">Connect to Google Sheets</span>
@@ -155,12 +180,7 @@ export default function AdminPage() {
             </div>
           </div>
         </div>
-      ) : (
-        <div className="banner banner-info" style={{ marginBottom: 24 }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8v.5" /></svg>
-          <div>Log in again (re-enter the keyword) to see the ready-to-paste Google Sheets formulas — they&rsquo;re only shown right after you type the keyword, since this page never asks the server for it back.</div>
-        </div>
-      )}
+      ) : null}
 
       <div className="row" style={{ marginBottom: 11 }}>
         <span className="eyebrow">Audits ({audits.length})</span>

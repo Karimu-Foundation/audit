@@ -319,13 +319,53 @@ could never get through).
 
 ### Admin page
 
-`/admin` on the deployed site — a shared-keyword gate (not per-person
-accounts), default keyword `K@rimu` (`ADMIN_PASSWORD` in `lib/adminAuth.js`;
-**set a real value in Vercel's environment variables before this is used
-for anything that matters** — the fallback is sitting in this repo's
-source). Behind it: a table of every synced audit and every occurrence
-(issue) with a link to its photo(s), read live from Blob storage — nothing
-is copied or cached, so it's always current as of the last sync.
+`/admin` on the deployed site — **"Sign in with Google", only for
+@karimufoundation.org accounts** (changed 2026-10-28; it used to be a
+shared keyword, `K@rimu`, that sat in this public repo's source, so anyone
+could read or delete everything). Behind it: a table of every synced audit
+and every occurrence (issue) with a link to its photo(s), read live from
+Blob storage — nothing is copied or cached, so it's always current as of
+the last sync. Loading it fetches the audit blobs in parallel
+(`listAudits()` in `lib/blobStore.js`); one at a time it took 30-60s+ for
+the ~317 audits of the September mission and hit the 60s function limit.
+
+**How sign-in works** (`lib/adminAuth.js`, `app/api/auth/google/*`): a
+normal OAuth "authorization code" sign-in. Google sends the browser back to
+`/api/auth/google/callback`, which swaps the code for an ID token directly
+with Google and lets the person in only if the account is a verified
+Google Workspace account of the karimufoundation.org domain (the token's
+`hd` claim — personal Gmail accounts have none). The session is a signed,
+httpOnly cookie valid for 7 days, signed with a key derived from the
+OAuth client secret (rotating the secret signs everyone out). No new
+dependencies.
+
+**One-time setup** (needs a karimufoundation.org Google account):
+
+1. In [Google Cloud Console](https://console.cloud.google.com/), create a
+   project (e.g. "Karimu Audit Admin").
+2. Google Auth Platform → set up the consent screen. Choose **Internal**
+   as the audience — Google itself then only lets karimufoundation.org
+   accounts sign in, on top of the app's own check.
+3. Google Auth Platform → Clients → Create client → **Web application**.
+   Authorized redirect URI:
+   `https://karimu-audit-app.vercel.app/api/auth/google/callback`
+   (add `http://localhost:3001/api/auth/google/callback` too for local
+   testing).
+4. In the Vercel project (Settings → Environment Variables), add
+   `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (mark the secret
+   Sensitive) for Production, then redeploy.
+
+Until those two are set, `/admin` says sign-in isn't configured and lets
+nobody in; nothing else in the app is affected.
+
+**The Sheets export is the one exception.** Google Sheets' `IMPORTDATA`
+(and the daily Drive-photo routine) can't sign in with Google, so the
+read-only `/api/admin/export` also accepts a shared key (`?key=` or
+`Authorization: Bearer`) — `ADMIN_PASSWORD` in Vercel's environment
+variables. That key opens nothing else: not the admin page's data, and
+never the reset. Its built-in fallback (`K@rimu`) is public in this repo,
+so set a real random value; the admin page warns while it's still the
+fallback and shows the ready-to-paste formulas with the current key.
 
 A **"Delete all synced audits"** button (added 2026-09-12) wipes every
 audit and photo blob in one go — for clearing out test data between
@@ -351,7 +391,7 @@ refreshes it automatically every couple of hours (and on open) — no app
 code, no scheduled task, nothing to maintain.
 
 One-time setup, done once by a human in the actual spreadsheet (the admin
-page shows the exact text once you've logged in, with your own keyword
+page shows the exact text once you've signed in, with the export key
 already filled in):
 
 1. Open the target spreadsheet — as of 2026-08-26, [Water Points Audit
@@ -360,10 +400,11 @@ already filled in):
 3. In `Findings!A1`: `=IMPORTDATA("https://<deployment-url>/api/admin/export?tab=findings&format=csv&key=<ADMIN_PASSWORD>")`
 4. In `Audits!A1`: the same URL with `tab=audits`.
 
-`key=` on that URL is the same shared keyword as the admin page — it's
-there because `IMPORTDATA` can't send a cookie or an `Authorization`
-header, only fetch a plain URL, so the keyword has to travel in the query
-string for this one legitimate use.
+`key=` on that URL is the export key (`ADMIN_PASSWORD`, see "Admin page"
+above) — it's there because `IMPORTDATA` can't sign in with Google, send a
+cookie, or send an `Authorization` header, only fetch a plain URL, so the
+key has to travel in the query string for this one read-only use. Changing
+`ADMIN_PASSWORD` means pasting the updated formulas into the sheet.
 
 **Photos still need a real copy in Drive** — `IMPORTDATA` only pulls text,
 so an occurrence's photo(s) stay Blob-storage URLs in the sheet (also

@@ -1,4 +1,4 @@
-import { isAuthorized } from "@/lib/adminAuth";
+import { isExportAuthorized } from "@/lib/adminAuth";
 import { isConfigured, listAudits, findingsFrom } from "@/lib/blobStore";
 
 export const runtime = "nodejs";
@@ -37,7 +37,7 @@ const FINDING_COLUMNS = [
 ];
 
 export async function GET(request) {
-  if (!isAuthorized(request)) {
+  if (!isExportAuthorized(request)) {
     return new Response("Not authorized.", { status: 401 });
   }
   if (!isConfigured()) {

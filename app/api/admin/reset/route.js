@@ -6,7 +6,7 @@ export const maxDuration = 60;
 
 // Wipes every synced audit and photo from Blob storage — for clearing out
 // test data before a real testing round or the mission itself starts.
-// POST-only (and password-gated, same as the rest of /api/admin) since
+// POST-only and Google-sign-in only (the export key does NOT open this) since
 // this is destructive and has no undo.
 export async function POST(request) {
   if (!isAuthorized(request)) {
