@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AccountsPanel from "./AccountsPanel";
 
 function fmtDate(iso) {
   if (!iso) return "—";
@@ -181,6 +182,8 @@ export default function AdminPage() {
           </div>
         </div>
       ) : null}
+
+      <AccountsPanel />
 
       <div className="row" style={{ marginBottom: 11 }}>
         <span className="eyebrow">Audits ({audits.length})</span>

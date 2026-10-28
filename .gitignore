@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local-only auditor accounts store (lib/accounts.js dev fallback)
+/.accounts-dev/

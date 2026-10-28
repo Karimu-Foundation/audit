@@ -75,7 +75,53 @@ and Intake sections) are kept verbatim from Nelson's checklist and are only
 in English — see the i18n note below on why that's an acceptable gap for
 now, and how to close it later.
 
-## Volunteer identification, groups, and routes
+## Auditor accounts and audit projects
+
+Added 2026-10-28. Replaces picking a name from a fixed list (see the
+historical section below).
+
+**Accounts.** On the admin page, "Add auditor" (name + email) creates an
+account and shows an **invite link** once — copy it or send it by
+WhatsApp. The auditor opens it on their phone, picks a language, and
+creates a password (8+ characters); the phone is then signed in. The link
+works once and expires after 7 days. The same button ("New invite link" /
+"Reset password") issues a fresh link to reset a forgotten password; using
+it signs out every device still on the old password. "Deactivate" blocks
+sign-in and signs the auditor out of every device at its next sync.
+
+**On the phone.** Sign-in needs signal once; after that the device keeps a
+90-day token and the auditor's assignments, and works offline as before.
+Both refresh from `/api/me` whenever there's signal. Sync now requires
+that token (`/api/sync` used to accept anything from anyone) and records
+who sent each audit (`auditorId`/`auditorEmail`). A device that's signed
+out keeps its unsynced audits and syncs them after signing in again.
+
+**Projects.** "Create project", then assign each of the 24 water-point
+groups (the existing ones in `lib/waterAssets.js`) to an auditor with a
+field day — e.g. 5 groups on days 1-5 for one auditor. Only active
+projects reach phones; an auditor's "My route" lists their groups by day.
+
+**Storage — read before changing anything.** Accounts and projects are two
+JSON files (`users.json`, `projects.json`) in a separate **private** Vercel
+Blob store, `karimu-audit-accounts` — not the public store the audits and
+photos are in, whose URLs are public. Passwords are stored as scrypt
+hashes and invite links as SHA-256 hashes. `lib/accounts.js` reaches the
+store through `ACCOUNTS_STORE_ID` + Vercel OIDC (the variable comes from
+connecting the store to the project with the env-var prefix `ACCOUNTS` —
+never the default prefix, which collides with the public store's `BLOB_*`
+variables). It has to be the
+store id: on Vercel the Blob SDK ignores an explicit `token` whenever OIDC
+is available and `BLOB_STORE_ID` is set (it is, for the public store), so
+code passing only a token would silently use the public store. Without a
+store configured, local development uses `.accounts-dev/` (gitignored)
+instead. Auditor tokens are signed with a key derived from
+`GOOGLE_CLIENT_SECRET` (`lib/auditorAuth.js`).
+
+## Volunteer identification, groups, and routes (historical)
+
+Superseded 2026-10-28 by "Auditor accounts and audit projects" above —
+the fixed volunteer list is gone, and the per-point `volunteer` field is
+kept as a record of the September 2026 plan only.
 
 Added 2026-08-25, reworked 2026-09-12. Right after picking a language, a
 volunteer picks their name from a fixed list (`VOLUNTEERS` in

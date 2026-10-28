@@ -1,4 +1,5 @@
 import { isConfigured, saveAudit } from "@/lib/blobStore";
+import { getAuditor } from "@/lib/auditorAuth";
 
 export const runtime = "nodejs";
 // Photos are embedded as base64 in the JSON body, so a few of them adds
@@ -40,6 +41,16 @@ export async function POST(request) {
   if (audit.test) {
     return Response.json({ ok: true, test: true, photosUploaded: 0, findingsWritten: 0 });
   }
+
+  // Only signed-in auditors can store audits (2026-10-28; before that this
+  // endpoint took anything from anyone). Who sent it is recorded from the
+  // token, not from what the device claims.
+  const auditor = await getAuditor(request);
+  if (!auditor) {
+    return Response.json({ ok: false, code: "signed_out", message: "Sign in again to sync." }, { status: 401 });
+  }
+  audit.auditorId = auditor.id;
+  audit.auditorEmail = auditor.email;
 
   try {
     const result = await saveAudit(audit);
