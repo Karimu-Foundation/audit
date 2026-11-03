@@ -179,6 +179,13 @@ export default function AdminPage() {
               <div className="small" style={{ fontWeight: 600, marginBottom: 4 }}>Audits tab, cell A1:</div>
               <div className="copybox">{auditsFormula}</div>
             </div>
+            <div>
+              <div className="small" style={{ fontWeight: 600, marginBottom: 4 }}>
+                Incidents Apps Script — value of the <span className="mono">EXPORT_KEY</span> script property
+                (see <a href="https://github.com/Karimu-Foundation/audit/blob/main/apps-script/Incidents.gs" target="_blank" rel="noreferrer">apps-script/Incidents.gs</a>):
+              </div>
+              <div className="copybox">{exportKey.key}</div>
+            </div>
           </div>
         </div>
       ) : null}
