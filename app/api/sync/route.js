@@ -51,6 +51,7 @@ export async function POST(request) {
   }
   audit.auditorId = auditor.id;
   audit.auditorEmail = auditor.email;
+  audit.auditorRole = auditor.role === "staff" ? "staff" : "volunteer";
 
   try {
     const result = await saveAudit(audit);

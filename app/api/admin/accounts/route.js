@@ -49,7 +49,7 @@ export async function POST(request) {
         extra = { invite: { userId: user.id, url: inviteUrl(request, inviteToken), expiresAt: user.invite.expiresAt } };
         break;
       }
-      case "editUser": await editUser(b.userId, b); break;
+      case "editUser": await editUser(b.userId, { name: b.name, email: b.email, role: b.role }); break;
       case "setUserActive": await setUserActive(b.userId, b.active); break;
       case "createProject": await createProject(b); break;
       case "updateProject": {

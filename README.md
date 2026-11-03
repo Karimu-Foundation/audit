@@ -117,6 +117,72 @@ store configured, local development uses `.accounts-dev/` (gitignored)
 instead. Auditor tokens are signed with a key derived from
 `GOOGLE_CLIENT_SECRET` (`lib/auditorAuth.js`).
 
+## Staff mode: villages, water tanks, and pipeline problems
+
+Added 2026-11-03. Karimu staff (mainly Emanuel Matika) don't work the
+volunteer groups: a field day is one **village**, and the list is every
+public asset in it — Water Points plus the village's **Water Tanks**
+(including the two spring intakes, DBBT04 and HGCT02, which the register
+lists as tanks).
+
+- **Role.** Each account is "Volunteer (groups)" or "Staff (villages)",
+  set when adding it on the admin page or changed in the auditors table
+  (accounts made before this are volunteers). Phones pick up a change the
+  next time they have signal.
+- **My villages.** Staff get "My villages" instead of "My route": pick a
+  village, get its assets on a map and as a list — tanks first, then a
+  nearest-neighbour visiting order — with done/total progress. No project
+  assignment needed. The setup picker also lists the tanks for staff.
+- **Tank checklist.** Tanks use `WATER_TANK_SECTIONS` (51 items, "Tanks and
+  Intake"), verbatim from the "Checklist" tab of the "Water Points
+  Checklist" sheet. The water / valve-key questions and their pre-fills
+  are water-point only, so tanks go straight to the checklist.
+- **Pipeline problem.** "Report a pipeline problem" (home screen, or a
+  village's screen with the village filled in) starts a one-item report
+  (audit type `pipeline`) filed against the nearest water point or tank as
+  its **reference** — the way the official incidents sheet logs pipe
+  problems (Item "Pipe" on the nearby asset's tag). The item starts as an
+  Issue; the note says what and where, plus photo and GPS.
+
+Volunteers see none of this: same groups, same Water-Point-only lists.
+
+## Incidents sheet (official format)
+
+Added 2026-11-03. Karimu's official incidents sheet ("Incidents - Water
+Project", tab "Current Incidents") is what the village and the Water
+Committee work from. Our findings go to our own parallel sheet first, now
+in the **same columns (A-AI, identical headers)** so Matika can copy rows
+across instead of retyping them.
+
+- `/api/admin/export?tab=incidents` (JSON, or `&format=csv`) — one row per
+  issue, built by `lib/incidents.js`: Date, Asset tag, the register's Asset
+  Type / Ward / Village / Sub-Village / Location / Ownership / Type ("N/A"
+  for tanks), **Item** mapped onto the official vocabulary (DP, Faucet,
+  Leach Hole, Valve Chamber, Fence, Plaque, Tank, Pipe, Asset Tag),
+  Description = the auditor's note, "Issue identified by" = Karimu,
+  photos, and Notes (checklist item, GPS, inspector, audit id).
+- `apps-script/Incidents.gs` — Apps Script for the parallel sheet ("Water
+  Points Audit Results - Sept 2026"). Hourly, it appends new rows to an
+  `Incidents` tab, copies each photo into the Drive folder "Occurrence
+  Photos" and links the Drive copy in "Picture of the Issue", translates
+  the description to English (original kept in column AO), and writes the
+  official sheet's per-row formulas into AD, AE, AG and AH. AI stays empty
+  (the official sheet fills it with one array formula). Columns AK onwards
+  — "Copied to official sheet" tick box, app ref, audit id — are for our
+  sheet only. Rows are only appended, never rewritten.
+  **Install:** in the sheet, Extensions → Apps Script, paste the file;
+  Project Settings → Script properties → `EXPORT_KEY` = the export key
+  from the admin page; run `setUp()` once and authorize. Who can open the
+  Drive photo links is decided by the "Occurrence Photos" folder's sharing.
+- **Copying into the official sheet:** select the rows' columns A-AH and
+  paste. D-J are lookup formulas in the official sheet — pasting puts the
+  same values there as plain text, which is fine. Fill "#" and the
+  witness / resolution columns there as usual.
+
+This script also takes over the photo copy that the daily Claude routine
+"Karimu audit photos → Drive" did (same folder, same file names, so
+nothing is copied twice); the routine can be paused once the script runs.
+
 ## Volunteer identification, groups, and routes (historical)
 
 Superseded 2026-10-28 by "Auditor accounts and audit projects" above —

@@ -6,6 +6,14 @@
 
 import { useEffect, useState } from "react";
 
+// Volunteers work the water-point groups a project assigns them; staff
+// (Karimu employees) work whole villages — tanks and pipeline problems
+// included — and don't need a project.
+const ROLE_OPTIONS = [
+  { id: "volunteer", label: "Volunteer (groups)" },
+  { id: "staff", label: "Staff (villages)" },
+];
+
 const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString() : "—");
 
 async function call(body) {
@@ -125,7 +133,7 @@ export default function AccountsPanel() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [invite, setInvite] = useState(null);
-  const [newUser, setNewUser] = useState({ name: "", email: "" });
+  const [newUser, setNewUser] = useState({ name: "", email: "", role: "volunteer" });
   const [newProject, setNewProject] = useState("");
 
   useEffect(() => {
@@ -164,18 +172,22 @@ export default function AccountsPanel() {
       <form className="card row" style={{ padding: 14, gap: 10, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 12 }}
             onSubmit={async (e) => {
               e.preventDefault();
-              if (await run({ action: "createUser", ...newUser })) setNewUser({ name: "", email: "" });
+              if (await run({ action: "createUser", ...newUser })) setNewUser({ name: "", email: "", role: "volunteer" });
             }}>
         <label className="field" style={{ flex: "1 1 180px" }}><span>Name</span>
           <input value={newUser.name} required onChange={(e) => setNewUser({ ...newUser, name: e.target.value })} /></label>
         <label className="field" style={{ flex: "1 1 220px" }}><span>Email</span>
           <input type="email" value={newUser.email} required onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} /></label>
+        <label className="field" style={{ flex: "0 1 200px" }}><span>Role</span>
+          <select value={newUser.role} onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}>
+            {ROLE_OPTIONS.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
+          </select></label>
         <button className="btn btn-primary" type="submit" disabled={busy}>Add auditor</button>
       </form>
 
       <div className="table-scroll" style={{ marginBottom: 30 }}>
         <table className="datatable">
-          <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Last sign-in</th><th></th></tr></thead>
+          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Last sign-in</th><th></th></tr></thead>
           <tbody>
             {data.users.map((u) => {
               const st = userStatus(u);
@@ -183,6 +195,12 @@ export default function AccountsPanel() {
                 <tr key={u.id}>
                   <td>{u.name}</td>
                   <td>{u.email}</td>
+                  <td>
+                    <select value={u.role} disabled={busy || !u.active}
+                            onChange={(e) => run({ action: "editUser", userId: u.id, role: e.target.value })}>
+                      {ROLE_OPTIONS.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
+                    </select>
+                  </td>
                   <td style={{ color: st.color }}>{st.label}</td>
                   <td>{fmtDate(u.lastLoginAt)}</td>
                   <td>
@@ -204,15 +222,16 @@ export default function AccountsPanel() {
                 </tr>
               );
             })}
-            {!data.users.length ? <tr><td colSpan={5} className="small" style={{ color: "var(--muted)" }}>No auditors yet — add the first one above.</td></tr> : null}
+            {!data.users.length ? <tr><td colSpan={6} className="small" style={{ color: "var(--muted)" }}>No auditors yet — add the first one above.</td></tr> : null}
           </tbody>
         </table>
       </div>
 
       <div className="row" style={{ marginBottom: 11 }}><span className="eyebrow">Audit projects ({data.projects.length})</span></div>
       <p className="small" style={{ color: "var(--muted)", margin: "0 0 12px" }}>
-        A project hands the {data.groups.length} water-point groups to auditors, with a field day for each. Auditors see their
-        groups under &ldquo;My route&rdquo; the next time their phone has signal.
+        A project hands the {data.groups.length} water-point groups to volunteers, with a field day for each. Volunteers see their
+        groups under &ldquo;My route&rdquo; the next time their phone has signal. Staff don&rsquo;t need a project: they pick a
+        village on the phone and get every water point, tank and intake in it.
       </p>
       <form className="card row" style={{ padding: 14, gap: 10, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 16 }}
             onSubmit={async (e) => {
