@@ -1,6 +1,7 @@
 import { isExportAuthorized } from "@/lib/adminAuth";
 import { isConfigured, listAudits, findingsFrom } from "@/lib/blobStore";
 import { INCIDENT_COLUMNS, incidentsFrom } from "@/lib/incidents";
+import { SCHOOL_INCIDENT_COLUMNS, schoolIncidentsFrom } from "@/lib/schoolIncidents";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -46,7 +47,7 @@ export async function GET(request) {
   }
 
   const url = new URL(request.url);
-  const tab = ["audits", "incidents"].includes(url.searchParams.get("tab")) ? url.searchParams.get("tab") : "findings";
+  const tab = ["audits", "incidents", "school_incidents"].includes(url.searchParams.get("tab")) ? url.searchParams.get("tab") : "findings";
   const format = url.searchParams.get("format") === "csv" ? "csv" : "json";
 
   const audits = await listAudits();
@@ -69,14 +70,18 @@ export async function GET(request) {
   // Findings laid out like the official Karimu incidents sheet (see
   // lib/incidents.js). The Apps Script in apps-script/Incidents.gs reads
   // the JSON; the CSV is the same rows for a quick look or IMPORTDATA.
-  if (tab === "incidents") {
-    const incidents = incidentsFrom(audits);
+  // tab=school_incidents is the same for the schools' official sheet
+  // (lib/schoolIncidents.js, apps-script/SchoolIncidents.gs).
+  if (tab === "incidents" || tab === "school_incidents") {
+    const [columns, incidents] = tab === "incidents"
+      ? [INCIDENT_COLUMNS, incidentsFrom(audits)]
+      : [SCHOOL_INCIDENT_COLUMNS, schoolIncidentsFrom(audits)];
     if (format === "csv") {
-      const lines = [[...INCIDENT_COLUMNS, "", "App ref"].map(csvCell).join(",")];
+      const lines = [[...columns, "", "App ref"].map(csvCell).join(",")];
       for (const r of incidents) lines.push([...r.values, "", r.ref].map(csvCell).join(","));
       return new Response(lines.join("\r\n"), { headers: { "Content-Type": "text/csv; charset=utf-8" } });
     }
-    return Response.json({ ok: true, columns: INCIDENT_COLUMNS, incidents });
+    return Response.json({ ok: true, columns, incidents });
   }
 
   const findings = findingsFrom(audits);

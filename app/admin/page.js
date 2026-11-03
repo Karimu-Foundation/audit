@@ -181,8 +181,9 @@ export default function AdminPage() {
             </div>
             <div>
               <div className="small" style={{ fontWeight: 600, marginBottom: 4 }}>
-                Incidents Apps Script — value of the <span className="mono">EXPORT_KEY</span> script property
-                (see <a href="https://github.com/Karimu-Foundation/audit/blob/main/apps-script/Incidents.gs" target="_blank" rel="noreferrer">apps-script/Incidents.gs</a>):
+                Incidents Apps Scripts — value of the <span className="mono">EXPORT_KEY</span> script property
+                (water points: <a href="https://github.com/Karimu-Foundation/audit/blob/main/apps-script/Incidents.gs" target="_blank" rel="noreferrer">apps-script/Incidents.gs</a>;
+                schools: <a href="https://github.com/Karimu-Foundation/audit/blob/main/apps-script/SchoolIncidents.gs" target="_blank" rel="noreferrer">apps-script/SchoolIncidents.gs</a>):
               </div>
               <div className="copybox">{exportKey.key}</div>
             </div>
@@ -222,8 +223,8 @@ export default function AdminPage() {
               <tr key={a.id}>
                 <td>{fmtDate(a.syncedAt)}</td>
                 <td>{a.ward}</td>
-                <td>{a.village}</td>
-                <td className="mono">{a.assetTag}</td>
+                <td>{a.village || a.school}</td>
+                <td className="mono">{a.assetTag || a.unit}</td>
                 <td>{a.inspector}</td>
                 <td className="mono">{a.date}</td>
                 <td>{a.answeredCount}/{a.totalCount}</td>

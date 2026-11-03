@@ -183,6 +183,37 @@ This script also takes over the photo copy that the daily Claude routine
 "Karimu audit photos → Drive" did (same folder, same file names, so
 nothing is copied twice); the routine can be paused once the script runs.
 
+## School audits and the schools incidents sheet
+
+Added 2026-11-03. The "School building" and "School bathroom" audit types
+(checklists from the "Maintenance Checklist: Schools" sheet, ported in
+`lib/checklists.js`) are switched on for **staff** accounts; volunteers
+still only see water points. The school picker lists the 12 schools of
+the official "Incidents - Schools" sheet (`SCHOOL_LIST`: Ward, School,
+Primary/Secondary — Dohom has both), grouped by Ward.
+
+- `/api/admin/export?tab=school_incidents` (JSON, or `&format=csv`) — one
+  row per issue, built by `lib/schoolIncidents.js`, in the official
+  sheet's columns A-AB ("Current Incidents", header row 3): Date, Ward,
+  School, Type, **Item** = where in the school (the building or room name,
+  e.g. "Grade 3", or the bathroom, e.g. "Girls' bathroom"; Farm / Garden /
+  Trees for the school-grounds section), Description = the auditor's note
+  (or the checklist item when there is no note), "Issue identified by" =
+  Karimu, photos, and Notes (checklist item, GPS, inspector, audit id).
+- `apps-script/SchoolIncidents.gs` — the same Apps Script as the water one
+  above, for the schools' own parallel sheet. It writes the official
+  per-row formulas into C (Year), Y and Z, leaves AB empty (the official
+  sheet fills it with one array formula), and keeps its extras from AD on
+  ("Copied to official sheet", app ref, ...). Photos go to a Drive folder
+  "School Occurrence Photos" that it creates next to the spreadsheet on the
+  first run (or the folder in the optional `PHOTO_FOLDER_ID` property).
+  **Install:** same as the water script — paste the file, add `EXPORT_KEY`
+  (same key), run `setUp()` once and authorize.
+- **Copying into the official sheet:** select the rows' columns A-Z and
+  paste into the first empty row of "Current Incidents". Fill "#", the
+  witnesses, "Name of person notified" and "Date when issue was notified"
+  there as usual (Y and Z count from that date).
+
 ## Volunteer identification, groups, and routes (historical)
 
 Superseded 2026-10-28 by "Auditor accounts and audit projects" above —
