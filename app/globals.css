@@ -496,3 +496,13 @@ select{appearance:none;
   font-family:var(--font-mono);font-size:12px;background:var(--surface-2);border:1px solid var(--line);
   border-radius:var(--r-md);padding:10px 12px;word-break:break-all;user-select:all;
 }
+
+/* Water issues, two stages (2026-11-06): the staff-only "identified by /
+   to be fixed by" pickers on an Issue, and the validation visit's cards. */
+.issue-meta.hidden{display:none}
+.issue-meta label.field{flex:1;min-width:140px}
+.vcard{padding:14px 16px;margin-bottom:12px}
+.vcard .fpath{font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.vcard .ftext{font-weight:600;font-size:14.5px;margin:2px 0 10px}
+.vcard .seg{width:100%}
+.vcard .seg button{flex:1}

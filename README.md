@@ -154,30 +154,57 @@ Committee work from. Our findings go to our own parallel sheet first, now
 in the **same columns (A-AI, identical headers)** so Matika can copy rows
 across instead of retyping them.
 
+Since 2026-11-06 it works in **two stages**, the way Matika fills the
+official sheet in by hand: the inspection fills A-R plus V (the issue's
+picture), and a later validation visit fills S-AC (except V).
+
 - `/api/admin/export?tab=incidents` (JSON, or `&format=csv`) — one row per
   issue, built by `lib/incidents.js`: Date, Asset tag, the register's Asset
   Type / Ward / Village / Sub-Village / Location / Ownership / Type ("N/A"
   for tanks), **Item** mapped onto the official vocabulary (DP, Faucet,
   Leach Hole, Valve Chamber, Fence, Plaque, Tank, Pipe, Asset Tag),
-  Description = the auditor's note, "Issue identified by" = Karimu,
-  photos, and Notes (checklist item, GPS, inspector, audit id).
+  Description = the auditor's note, then the rest of stage 1:
+  - M "Issue identified by": Karimu, Both or Water Committee (staff pick
+    it per issue; default Karimu);
+  - N KAHESO rep = the inspector's first name; O sub-village rep (staff
+    type it on Setup; remembered per village);
+  - P = the inspection date, Q planned resolution = one month later;
+  - R "Resolution to be done by": WC for valve chambers, pipes and tanks,
+    Community Around for the rest (staff can change it per issue);
+  - V the photos.
+  W (Notes) is left for the validation; the app's own note (checklist item,
+  GPS, inspector, audit id) is in `appNotes`, written to column AQ.
+- **Validation visits** (staff): "Validate fixes" on the app's home screen
+  lists the open issues by village and water point, downloaded from
+  `/api/incidents/open` and kept on the phone for working offline. Each
+  issue is marked Fixed, Refused to fix or Not yet; the first two fill
+  S (date resolved), T (sub-village rep), U (KAHESO rep), W (notes), X
+  (description of resolution), Y (photo after the fix), Z (validation
+  date), AA (validated by), AB and AC (Karimu person who verified, date).
+  "Not yet" leaves the issue open for the next visit. The visit is an
+  audit of type `validation`, merged into the issue's row by its ref.
 - `apps-script/Incidents.gs` — Apps Script for the parallel sheet ("Water
   Points Audit Results - Sept 2026"). Hourly, it appends new rows to an
   `Incidents` tab, copies each photo into the Drive folder "Occurrence
-  Photos" and links the Drive copy in "Picture of the Issue", translates
-  the description to English (original kept in column AO), and writes the
-  official sheet's per-row formulas into AD, AE, AG and AH. AI stays empty
-  (the official sheet fills it with one array formula). Columns AK onwards
-  — "Copied to official sheet" tick box, app ref, audit id — are for our
-  sheet only. Rows are only appended, never rewritten.
+  Photos" and links the Drive copy ("link", as in the official sheet),
+  translates the description to English (original kept in column AO),
+  formats dates like the official sheet, and writes the official sheet's
+  per-row formulas into AD, AE, AG and AH. AI stays empty (the official
+  sheet fills it with one array formula). When a validation closes an
+  issue it fills S-AC of that row, links the "after" photo in Y and adds
+  an empty "Validation copied to official sheet" tick box (AR). Columns AK
+  onwards are for our sheet only.
   **Install:** in the sheet, Extensions → Apps Script, paste the file;
   Project Settings → Script properties → `EXPORT_KEY` = the export key
   from the admin page; run `setUp()` once and authorize. Who can open the
   Drive photo links is decided by the "Occurrence Photos" folder's sharing.
-- **Copying into the official sheet:** select the rows' columns A-AH and
-  paste. D-J are lookup formulas in the official sheet — pasting puts the
-  same values there as plain text, which is fine. Fill "#" and the
-  witness / resolution columns there as usual.
+- **Copying into the official sheet:** after the inspection, select the
+  new rows' columns A-V and paste into the first empty row (D-J are lookup
+  formulas in the official sheet — pasting puts the same values there as
+  plain text, which is fine); fill "#" there and tick "Copied to official
+  sheet" here. After a validation, copy S-AC of the row (V comes along
+  unchanged) onto the same issue's row in the official sheet and tick
+  "Validation copied to official sheet".
 
 This script also takes over the photo copy that the daily Claude routine
 "Karimu audit photos → Drive" did (same folder, same file names, so
