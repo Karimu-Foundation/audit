@@ -13,7 +13,8 @@ export async function GET(request) {
   if (!isConfigured()) {
     return Response.json({ ok: false, user, exportKey, code: "not_configured", message: "Blob storage isn't set up yet (missing BLOB_READ_WRITE_TOKEN)." }, { status: 503 });
   }
-  const audits = await listAudits();
+  // A person looking at the admin page wants what's synced right now.
+  const audits = await listAudits({ maxAgeMs: 0 });
   const findings = findingsFrom(audits);
   return Response.json({ ok: true, user, exportKey, audits, findings });
 }

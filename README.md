@@ -220,6 +220,15 @@ sheet they're linked as "video" after the photos' "link". A video the
 script can't fetch (over 50 MB) stays linked to the app's copy and is
 retried every run.
 
+**Audits snapshot** (2026-11-10): exports, the admin page and the open
+issues list read every synced audit from one blob,
+`cache/audits-snapshot.json`, instead of fetching ~360 files each time
+(that was ~30,000 CDN requests a day against the Hobby plan's 1,000,000 a
+month). It's rebuilt at most hourly, re-reading only audits added or
+re-synced since (by `uploadedAt`). Hourly script runs and IMPORTDATA can
+therefore lag up to an hour; the admin page and the sheet's
+**Karimu → Sync incidents now** menu (`&fresh=1`) always look fresh.
+
 This script also takes over the photo copy that the daily Claude routine
 "Karimu audit photos → Drive" did (same folder, same file names, so
 nothing is copied twice); the routine can be paused once the script runs.

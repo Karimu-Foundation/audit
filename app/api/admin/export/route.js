@@ -52,7 +52,9 @@ export async function GET(request) {
   const tab = ["audits", "incidents", "school_incidents"].includes(url.searchParams.get("tab")) ? url.searchParams.get("tab") : "findings";
   const format = url.searchParams.get("format") === "csv" ? "csv" : "json";
 
-  const audits = await listAudits();
+  // `fresh=1` (the sheet's "Sync now" menu) skips the up-to-an-hour-old
+  // snapshot that scheduled runs and IMPORTDATA get; see listAudits().
+  const audits = await listAudits(url.searchParams.get("fresh") === "1" ? { maxAgeMs: 0 } : {});
 
   if (tab === "audits") {
     const rows = audits.map((a) => ({

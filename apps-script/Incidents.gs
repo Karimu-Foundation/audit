@@ -68,16 +68,27 @@ function setUp() {
     .filter(t => t.getHandlerFunction() === "syncIncidents")
     .forEach(t => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger("syncIncidents").timeBased().everyHours(1).create();
-  syncIncidents();
+  syncIncidents_(true);
 }
 
 function onOpen() {
   SpreadsheetApp.getUi().createMenu("Karimu")
-    .addItem("Sync incidents now", "syncIncidents")
+    .addItem("Sync incidents now", "syncIncidentsNow")
     .addToUi();
 }
 
+/** The menu: includes audits synced in the last hour (the hourly run reads
+ * the app's snapshot, which can be up to an hour old). */
+function syncIncidentsNow() {
+  syncIncidents_(true);
+}
+
+/** The hourly trigger. */
 function syncIncidents() {
+  syncIncidents_(false);
+}
+
+function syncIncidents_(fresh) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(5000)) return; // a run is already going
   try {
@@ -86,7 +97,7 @@ function syncIncidents() {
     if (!key) throw new Error("Add the EXPORT_KEY script property first (Project Settings -> Script properties).");
 
     const res = UrlFetchApp.fetch(
-      APP_URL + "/api/admin/export?tab=incidents&format=json&key=" + encodeURIComponent(key),
+      APP_URL + "/api/admin/export?tab=incidents&format=json" + (fresh ? "&fresh=1" : "") + "&key=" + encodeURIComponent(key),
       { muteHttpExceptions: true }
     );
     if (res.getResponseCode() === 401) throw new Error("The app rejected EXPORT_KEY — it was probably rotated. Copy the current key from the admin page into the script property.");
