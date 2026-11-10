@@ -206,6 +206,20 @@ picture), and a later validation visit fills S-AC (except V).
   unchanged) onto the same issue's row in the official sheet and tick
   "Validation copied to official sheet".
 
+**Videos** (added 2026-11-10, staff, water issues and validation fixes):
+"Record video" / "Video from gallery" next to the photo buttons, up to 30
+seconds and 45 MB. A video stays on the phone (IndexedDB "media" store)
+until Sync, which uploads it straight to Blob storage under
+`videos/{auditId}/` (too big for `/api/sync`; `/api/upload` hands out the
+upload tokens to signed-in staff) and then sends the audit with the
+link. On its next run the Apps Script copies the video into "Occurrence
+Photos" and calls `/api/admin/media/archive` (export key), which points
+the audit at the Drive copy and deletes the video from Blob storage — so
+videos live in Drive and never count against the Blob plan's 1 GB. In the
+sheet they're linked as "video" after the photos' "link". A video the
+script can't fetch (over 50 MB) stays linked to the app's copy and is
+retried every run.
+
 This script also takes over the photo copy that the daily Claude routine
 "Karimu audit photos → Drive" did (same folder, same file names, so
 nothing is copied twice); the routine can be paused once the script runs.

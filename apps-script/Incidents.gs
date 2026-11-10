@@ -14,7 +14,12 @@
  *      Portuguese, Spanish or English; the original is kept in column AO);
  *   4. appends the new rows to the "Incidents" tab;
  *   5. (added 2026-11-06) fills in S-AC of a row once a validation visit in
- *      the app has closed that issue, with the "after" photo in Y.
+ *      the app has closed that issue, with the "after" photo in Y;
+ *   6. (added 2026-11-10) copies each video into the same Drive folder and
+ *      then has the app delete it from its own storage (the app's record
+ *      then points at the Drive copy), so videos live in Drive only. A
+ *      video that fails (e.g. over 50 MB) is linked to the app's copy and
+ *      tried again next run.
  *
  * Two stages, like the official sheet: copy A-R plus V right after the
  * inspection, and S-AC once "Validation copied to official sheet" shows
@@ -112,6 +117,32 @@ function syncIncidents() {
       return driveByName[name];
     });
 
+    // Videos first: copy to Drive, then archive (step 6). Over every row,
+    // so one that failed last time is retried.
+    const videoJobs = [];
+    data.incidents.forEach(inc => {
+      (inc.videoUrls || []).forEach((url, i) => videoJobs.push({ auditId: inc.auditId, url, name: inc.videoFilenames[i] }));
+      const val = inc.validation;
+      if (val) (val.videoUrls || []).forEach((url, i) => videoJobs.push({ auditId: val.auditId, url, name: val.videoFilenames[i] }));
+    });
+    for (const job of videoJobs) {
+      if (!isAppStorage_(job.url)) continue;           // already moved to Drive
+      if (Date.now() - started > TIME_BUDGET_MS) break;
+      try {
+        if (!driveByName[job.name]) {
+          const res = UrlFetchApp.fetch(job.url);
+          const expected = Number(res.getHeaders()["Content-Length"] || 0);
+          const blob = res.getBlob().setName(job.name);
+          if (expected && blob.getBytes().length !== expected) throw new Error("incomplete download");
+          driveByName[job.name] = folder.createFile(blob).getUrl();
+        }
+        archiveVideo_(key, job.auditId, job.url, driveByName[job.name]);
+      } catch (e) {
+        console.error("Video " + job.name + " not moved to Drive yet: " + e.message);
+      }
+    }
+    const videoLinks = (urls, names) => (urls || []).map((url, i) => driveByName[names[i]] || url);
+
     // New issues: append a row each.
     const ready = [];
     for (const inc of data.incidents.filter(inc => !rowByRef[inc.ref])) {
@@ -119,7 +150,9 @@ function syncIncidents() {
       ready.push({
         inc,
         links: toDrive(inc.photoUrls, inc.photoFilenames),
+        videos: videoLinks(inc.videoUrls, inc.videoFilenames),
         fixLinks: inc.validation ? toDrive(inc.validation.photoUrls, inc.validation.photoFilenames) : [],
+        fixVideos: inc.validation ? videoLinks(inc.validation.videoUrls, inc.validation.videoFilenames) : [],
         description: toEnglish_(inc.description),
       });
     }
@@ -144,8 +177,8 @@ function syncIncidents() {
       sheet.getRange(first, 1, rows.length, rows[0].length).setValues(rows);
       sheet.getRange(first, COPIED_COL, rows.length, 1).insertCheckboxes();
       DATE_COLS.forEach(c => sheet.getRange(first, c, rows.length, 1).setNumberFormat(DATE_FORMAT));
-      sheet.getRange(first, PICTURE_COL, rows.length, 1).setRichTextValues(ready.map(({ links }) => [photoLinks_(links)]));
-      sheet.getRange(first, RESOLVED_PICTURE_COL, rows.length, 1).setRichTextValues(ready.map(({ fixLinks }) => [photoLinks_(fixLinks)]));
+      sheet.getRange(first, PICTURE_COL, rows.length, 1).setRichTextValues(ready.map(({ links, videos }) => [photoLinks_(links, videos)]));
+      sheet.getRange(first, RESOLVED_PICTURE_COL, rows.length, 1).setRichTextValues(ready.map(({ fixLinks, fixVideos }) => [photoLinks_(fixLinks, fixVideos)]));
       ready.forEach(({ inc }, i) => {
         if (inc.validation) sheet.getRange(first + i, VALIDATION_COPIED_COL).insertCheckboxes();
       });
@@ -159,8 +192,9 @@ function syncIncidents() {
       const v = inc.values.map(toCell_);
       sheet.getRange(r, 19, 1, 3).setValues([v.slice(18, 21)]);   // S-U
       sheet.getRange(r, 23, 1, 7).setValues([v.slice(22, 29)]);   // W-AC
-      sheet.getRange(r, RESOLVED_PICTURE_COL).setRichTextValue(
-        photoLinks_(toDrive(inc.validation.photoUrls, inc.validation.photoFilenames)));
+      sheet.getRange(r, RESOLVED_PICTURE_COL).setRichTextValue(photoLinks_(
+        toDrive(inc.validation.photoUrls, inc.validation.photoFilenames),
+        videoLinks(inc.validation.videoUrls, inc.validation.videoFilenames)));
       [19, 26, 29].forEach(c => sheet.getRange(r, c).setNumberFormat(DATE_FORMAT));
       sheet.getRange(r, VALIDATION_COPIED_COL).insertCheckboxes().setValue(false);
       sheet.getRange(r, VALIDATION_SYNCED_COL, 1, 2).setValues([[inc.validation.syncedAt, inc.validation.photoFilenames.join(", ")]]);
@@ -209,18 +243,38 @@ function indexFolder_(folder, out) {
   return out;
 }
 
-/** "link" (or "link 1", "link 2" …), each linked to its Drive file — the
- * official sheet's own wording. */
-function photoLinks_(links) {
-  if (!links.length) return SpreadsheetApp.newRichTextValue().setText("").build();
-  const labels = links.length === 1 ? ["link"] : links.map((_, i) => "link " + (i + 1));
+/** "link" (or "link 1", "link 2" …) for photos — the official sheet's own
+ * wording — then "video" (or "video 1" …), each linked to its Drive file. */
+function photoLinks_(links, videos) {
+  videos = videos || [];
+  const name = (word, list) => list.length === 1 ? [word] : list.map((_, i) => word + " " + (i + 1));
+  const labels = name("link", links).concat(name("video", videos));
+  const urls = links.concat(videos);
+  if (!labels.length) return SpreadsheetApp.newRichTextValue().setText("").build();
   const b = SpreadsheetApp.newRichTextValue().setText(labels.join("\n"));
   let at = 0;
   labels.forEach((label, i) => {
-    b.setLinkUrl(at, at + label.length, links[i]);
+    b.setLinkUrl(at, at + label.length, urls[i]);
     at += label.length + 1;
   });
   return b.build();
+}
+
+/** Still in the app's own storage (not yet moved to Drive)? */
+function isAppStorage_(url) {
+  return /^https:\/\/[a-z0-9]+\.public\.blob\.vercel-storage\.com\//i.test(url || "");
+}
+
+/** Tells the app the video is safe in Drive: it repoints the audit at the
+ * Drive copy and deletes its own. */
+function archiveVideo_(key, auditId, url, driveUrl) {
+  const res = UrlFetchApp.fetch(APP_URL + "/api/admin/media/archive?key=" + encodeURIComponent(key), {
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify({ auditId: auditId, url: url, driveUrl: driveUrl }),
+    muteHttpExceptions: true,
+  });
+  if (res.getResponseCode() !== 200) throw new Error("archive HTTP " + res.getResponseCode() + ": " + res.getContentText().slice(0, 200));
 }
 
 function toEnglish_(text) {

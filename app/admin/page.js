@@ -271,6 +271,11 @@ export default function AdminPage() {
                         </a>
                       ))
                     : "—"}
+                  {f.videoUrls
+                    ? f.videoUrls.split(", ").map((u, j) => (
+                        <a key={"v" + j} href={u} target="_blank" rel="noreferrer" style={{ marginRight: 8 }}>video {j + 1}</a>
+                      ))
+                    : null}
                 </td>
               </tr>
             ))}

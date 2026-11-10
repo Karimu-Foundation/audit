@@ -36,6 +36,8 @@ const FINDING_COLUMNS = [
   "syncedAt", "auditId", "school", "unit",
   "ward", "village", "subVillage", "assetTag",
   "section", "group", "statement", "note", "photoFilenames","photoUrls",
+  // Appended 2026-11-10 (videos), so existing columns don't shift.
+  "videoFilenames", "videoUrls",
 ];
 
 export async function GET(request) {

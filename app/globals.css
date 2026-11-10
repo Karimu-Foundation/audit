@@ -506,3 +506,4 @@ select{appearance:none;
 .vcard .ftext{font-weight:600;font-size:14.5px;margin:2px 0 10px}
 .vcard .seg{width:100%}
 .vcard .seg button{flex:1}
+.video-thumb{display:flex;align-items:center;justify-content:center;background:var(--surface-2);font-family:var(--font-mono);font-size:11px;color:var(--ink-2)}
